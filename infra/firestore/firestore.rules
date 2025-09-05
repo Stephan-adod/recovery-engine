@@ -1,0 +1,24 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isTenant() { return request.auth != null && request.auth.token.tenantId != null; }
+    function tenantId() { return request.auth.token.tenantId; }
+    function pathTenantMatches(tenant) { return isTenant() && tenant == tenantId(); }
+
+    match /tenants/{tenant}/snapshots_daily/{doc} {
+      allow read: if pathTenantMatches(tenant);
+      allow write: if false;
+    }
+
+    match /tenants/{tenant}/settings/{doc} {
+      allow read: if pathTenantMatches(tenant);
+      allow write: if pathTenantMatches(tenant);
+    }
+
+    match /tenants/{tenant}/{col}/{doc} {
+      allow read: if pathTenantMatches(tenant) &&
+                   (col in ['events','carts','orders','recoveries','billing_ledger','shops']);
+      allow write: if false;
+    }
+  }
+}

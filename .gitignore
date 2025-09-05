@@ -1,0 +1,5 @@
+﻿infra/functions/node_modules/
+infra/functions/.firebase/
+infra/functions/.cache/
+infra/functions/.local/
+infra/functions/.DS_Store

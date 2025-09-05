@@ -1,0 +1,27 @@
+﻿{
+  "indexes": [
+    { "collectionGroup": "events", "queryScope": "COLLECTION",
+      "fields": [ {"fieldPath":"tenantId","order":"ASCENDING"},
+                  {"fieldPath":"type","order":"ASCENDING"},
+                  {"fieldPath":"ts","order":"DESCENDING"} ] },
+    { "collectionGroup": "events", "queryScope": "COLLECTION",
+      "fields": [ {"fieldPath":"tenantId","order":"ASCENDING"},
+                  {"fieldPath":"shopId","order":"ASCENDING"},
+                  {"fieldPath":"ts","order":"DESCENDING"} ] },
+    { "collectionGroup": "events", "queryScope": "COLLECTION",
+      "fields": [ {"fieldPath":"tenantId","order":"ASCENDING"},
+                  {"fieldPath":"customer.email_hash","order":"ASCENDING"},
+                  {"fieldPath":"ts","order":"DESCENDING"} ] },
+    { "collectionGroup": "carts", "queryScope": "COLLECTION",
+      "fields": [ {"fieldPath":"tenantId","order":"ASCENDING"},
+                  {"fieldPath":"status","order":"ASCENDING"},
+                  {"fieldPath":"abandonedAt","order":"DESCENDING"} ] },
+    { "collectionGroup": "orders", "queryScope": "COLLECTION",
+      "fields": [ {"fieldPath":"tenantId","order":"ASCENDING"},
+                  {"fieldPath":"completedAt","order":"DESCENDING"} ] },
+    { "collectionGroup": "billing_ledger", "queryScope": "COLLECTION",
+      "fields": [ {"fieldPath":"tenantId","order":"ASCENDING"},
+                  {"fieldPath":"period","order":"DESCENDING"} ] }
+  ],
+  "fieldOverrides": []
+}
