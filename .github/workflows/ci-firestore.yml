@@ -1,0 +1,49 @@
+name: CI Firestore Rules & Indexes
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "infra/firestore/**"
+      - ".github/workflows/ci-firestore.yml"
+
+permissions:
+  contents: read
+  id-token: write   # nötig für WIF/OIDC
+
+env:
+  GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+  GCP_REGION:     ${{ secrets.GCP_REGION }}
+
+jobs:
+  deploy-firestore:
+    runs-on: ubuntu-latest
+    concurrency:
+      group: firestore-${{ github.ref }}
+      cancel-in-progress: true
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Auth to Google Cloud (WIF)
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.WIF_PROVIDER }}
+          service_account: ${{ vars.GCP_SA_EMAIL }}
+
+      - name: Setup gcloud
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Install Firebase CLI
+        run: npm i -g firebase-tools@latest
+
+      # optional: APIs sicherstellen (idempotent)
+      - name: Ensure APIs
+        run: |
+          gcloud services enable firestore.googleapis.com firebaserules.googleapis.com
+
+      - name: Deploy Firestore rules & indexes
+        working-directory: infra/firestore
+        run: |
+          firebase deploy --only firestore:rules,firestore:indexes \
+            --project "$GCP_PROJECT_ID" --non-interactive
