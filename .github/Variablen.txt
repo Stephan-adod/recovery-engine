@@ -1,0 +1,7 @@
+$PROJECT_ID     = "recovery-engine"
+$PROJECT_NUMBER = "544034667602"
+$POOL_ID        = "github-pool"
+$SA_NAME        = "deploy-sa"
+$SA_EMAIL       = "$SA_NAME@$PROJECT_ID.iam.gserviceaccount.com"
+$GITHUB_OWNER   = "Stephan-adod"
+$GITHUB_REPO    = "recovery-engine"
