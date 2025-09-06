@@ -2,6 +2,7 @@ name: deploy-firestore
 on:
   push:
     branches: [ main ]
+  workflow_dispatch:
 
 jobs:
   deploy:
@@ -13,6 +14,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: debug github
+        run: |
+          echo "repo=${{ github.repository }}"
+          echo "ref=${{ github.ref }}"
+
       - uses: google-github-actions/auth@v2
         with:
           workload_identity_provider: projects/544034667602/locations/global/workloadIdentityPools/github-pool/providers/github-provider
@@ -21,3 +27,4 @@ jobs:
 
       - run: npm i -g firebase-tools
       - run: firebase deploy --only firestore:rules,firestore:indexes --project recovery-engine
+
