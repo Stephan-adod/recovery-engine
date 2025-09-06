@@ -28,3 +28,4 @@ jobs:
       - run: npm i -g firebase-tools
       - run: firebase deploy --only firestore:rules,firestore:indexes --project recovery-engine
 
+
