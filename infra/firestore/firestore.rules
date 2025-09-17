@@ -11,7 +11,8 @@ service cloud.firestore {
     function isServiceAccount() {
       return request.auth != null &&
              request.auth.token.email != null &&
-             request.auth.token.email.matches('.*\\.gserviceaccount\\.com$');
+             // Allows service principals like worker@project.iam.gserviceaccount.com while excluding regular users.
+             request.auth.token.email.matches('.*@.*\.gserviceaccount\.com$');
     }
 
     match /events/{documentId} {
