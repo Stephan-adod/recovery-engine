@@ -1,23 +1,51 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    function isTenant() { return request.auth != null && request.auth.token.tenantId != null; }
-    function tenantId() { return request.auth.token.tenantId; }
-    function pathTenantMatches(tenant) { return isTenant() && tenant == tenantId(); }
-
-    match /tenants/{tenant}/snapshots_daily/{doc} {
-      allow read: if pathTenantMatches(tenant);
-      allow write: if false;
+    function isTenant(docTenantId) {
+      return request.auth != null &&
+             request.auth.token.tenantId != null &&
+             docTenantId != null &&
+             request.auth.token.tenantId == docTenantId;
     }
 
-    match /tenants/{tenant}/settings/{doc} {
-      allow read: if pathTenantMatches(tenant);
-      allow write: if pathTenantMatches(tenant);
+    function isServiceAccount() {
+      return request.auth != null &&
+             request.auth.token.email != null &&
+             request.auth.token.email.matches('.*\\.gserviceaccount\\.com$');
     }
 
-    match /tenants/{tenant}/{col}/{doc} {
-      allow read: if pathTenantMatches(tenant) &&
-                   (col in ['events','carts','orders','recoveries','billing_ledger','shops']);
+    match /events/{documentId} {
+      allow read: if isServiceAccount() || isTenant(resource.data.tenantId);
+      allow write: if isServiceAccount();
+    }
+
+    match /carts/{documentId} {
+      allow read: if isServiceAccount() || isTenant(resource.data.tenantId);
+      allow write: if isServiceAccount();
+    }
+
+    match /orders/{documentId} {
+      allow read: if isServiceAccount() || isTenant(resource.data.tenantId);
+      allow write: if isServiceAccount();
+    }
+
+    match /recoveries/{documentId} {
+      allow read: if isServiceAccount() || isTenant(resource.data.tenantId);
+      allow write: if isServiceAccount();
+    }
+
+    match /billing_ledger/{documentId} {
+      allow read: if isServiceAccount() || isTenant(resource.data.tenantId);
+      allow write: if isServiceAccount();
+    }
+
+    match /shops/{tenantId}/settings/{documentId} {
+      allow read: if isServiceAccount() || (isTenant(resource.data.tenantId) && resource.data.tenantId == tenantId);
+      allow write: if isServiceAccount();
+    }
+
+    match /{document=**} {
+      allow read: if false;
       allow write: if false;
     }
   }
