@@ -23,7 +23,8 @@ exports.helloWorld = onRequest(async (req, res) => {
     }
 
     const docRef = admin.firestore().collection("demo").doc("hello");
-    const payload = { message: "Hello World" };
+    const ts = new Date().toISOString();
+    const payload = { message: "Hello World", ts };
 
     await docRef.set(payload);
     const snapshot = await docRef.get();
