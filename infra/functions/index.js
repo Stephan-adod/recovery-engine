@@ -15,6 +15,30 @@ async function writeDoc(tenant,col,obj){
   return admin.firestore().collection("tenants").doc(tenant).collection(col).add({tenantId:tenant,...obj});
 }
 
+exports.helloWorld = onRequest(async (req, res) => {
+  try {
+    if (req.method !== "GET" && req.method !== "POST") {
+      res.set("Allow", ["GET", "POST"]);
+      throw new HttpsError("invalid-argument", "Only GET and POST supported");
+    }
+
+    const docRef = admin.firestore().collection("demo").doc("hello");
+    const payload = { message: "Hello World" };
+
+    await docRef.set(payload);
+    const snapshot = await docRef.get();
+
+    if (!snapshot.exists) {
+      throw new HttpsError("internal", "Document not found after write");
+    }
+
+    res.status(200).json(snapshot.data());
+  } catch (error) {
+    const statusCode = error.httpErrorCode?.status || 500;
+    res.status(statusCode).json({ error: error.message });
+  }
+});
+
 exports.ingestEvent = onRequest(async (req,res)=>{
   try{ if(req.method!=="POST") throw new HttpsError("invalid-argument","POST");
        const tenant=authz(req);
