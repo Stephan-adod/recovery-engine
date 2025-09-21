@@ -3,3 +3,6 @@ infra/functions/.firebase/
 infra/functions/.cache/
 infra/functions/.local/
 infra/functions/.DS_Store
+functions/*-debug.log
+functions/firebase-debug.log
+functions/firestore-debug.log
