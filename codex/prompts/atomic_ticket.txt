@@ -1,0 +1,3 @@
+﻿# Prompt-Template (Atomic Ticket)
+Kontext: Repo-Tree + Ticket-Text.
+Constraints: Nur freigegebene Pfade ändern, Output als vollständige Dateien, kurze Testanleitung.
