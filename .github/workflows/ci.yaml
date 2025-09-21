@@ -1,15 +1,14 @@
-name: smoke
 
+name: ci
 on:
   pull_request:
-    branches:
-      - main
 
 jobs:
   smoke:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
+
       - name: Checkout repository
         uses: actions/checkout@v4
 
