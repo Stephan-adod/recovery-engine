@@ -4,7 +4,8 @@
   "main": "index.js",
   "engines": { "node": "22" },
   "scripts": {
-    "emu": "firebase emulators:start --only functions,firestore --project recovery-engine"
+    "emu": "firebase emulators:start --only functions,firestore --project recovery-engine",
+    "test:emu": "node scripts/emu-smoke.js"
   },
   "dependencies": {
     "firebase-admin": "^12.6.0",

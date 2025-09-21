@@ -1,3 +1,4 @@
+
 name: ci
 on:
   pull_request:
@@ -5,11 +6,64 @@ on:
 jobs:
   smoke:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - run: npm ci --prefix functions
-      - run: echo "TODO: add emulator smoke"
+          cache: npm
+          cache-dependency-path: functions/package-lock.json
 
+      - name: Install Functions dependencies
+        run: npm ci --prefix functions
+
+      - name: Start Firebase emulators
+        run: |
+          npx firebase-tools emulators:start \
+            --only functions,firestore \
+            --project recovery-engine \
+            > firebase-emulator.log 2>&1 &
+          EMULATOR_PID=$!
+          echo "Firebase emulators started with PID ${EMULATOR_PID}"
+          echo "EMULATOR_PID=${EMULATOR_PID}" >> "$GITHUB_ENV"
+
+      - name: Wait for Firebase emulators
+        run: |
+          timeout 120 bash -c 'until nc -z 127.0.0.1 5001 && nc -z 127.0.0.1 8080; do sleep 2; done'
+
+      - name: Run smoke test
+        env:
+          GCLOUD_PROJECT: recovery-engine
+          GOOGLE_CLOUD_PROJECT: recovery-engine
+          FIRESTORE_EMULATOR_HOST: 127.0.0.1:8080
+          FUNCTIONS_EMULATOR_HOST: http://127.0.0.1:5001
+        run: npm run test:emu --prefix functions
+
+      - name: Dump emulator logs on failure
+        if: failure()
+        run: |
+          if [ -f firebase-emulator.log ]; then
+            echo '===== firebase-emulator.log ====='
+            cat firebase-emulator.log
+            echo '===== 404 excerpt ====='
+            grep -n 'Function europe-west1-helloWorld does not exist' firebase-emulator.log || echo 'No 404 entries found.'
+            echo '===== end of firebase-emulator.log ====='
+          else
+            echo 'firebase-emulator.log not found'
+          fi
+
+      - name: Stop Firebase emulators
+        if: always()
+        run: |
+          if [ -n "${{ env.EMULATOR_PID }}" ] && ps -p "${{ env.EMULATOR_PID }}" > /dev/null 2>&1; then
+            echo "Stopping Firebase emulators (PID=${{ env.EMULATOR_PID }})"
+            kill "${{ env.EMULATOR_PID }}" || true
+            sleep 5
+          else
+            echo 'Firebase emulator process not running.'
+          fi
