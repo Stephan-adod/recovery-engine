@@ -66,6 +66,84 @@ exports.eventWriteMock = functions
     });
   });
 
+exports.ingestEvent = functions
+  .region('europe-west1')
+  .https.onRequest(async (req, res) => {
+    if (req.method !== 'POST') {
+      res.set('Allow', 'POST');
+      return res.status(405).json({ error: 'method_not_allowed' });
+    }
+
+    const body = (req.body && typeof req.body === 'object') ? req.body : {};
+    const errors = [];
+
+    const tenantId = body.tenantId;
+    const eventType = body.type;
+    const refId = body.refId;
+    const amount = body.amount;
+    const tsInput = body.ts;
+
+    if (typeof tenantId !== 'string' || tenantId.trim() === '') {
+      errors.push('tenantId must be a non-empty string');
+    }
+
+    if (typeof eventType !== 'string' || eventType.trim() === '') {
+      errors.push('type must be a non-empty string');
+    }
+
+    if (typeof refId !== 'string' || refId.trim() === '') {
+      errors.push('refId must be a non-empty string');
+    }
+
+    if (typeof amount !== 'number' || !Number.isFinite(amount) || amount < 0) {
+      errors.push('amount must be a number greater than or equal to 0');
+    }
+
+    let resolvedTimestamp;
+
+    if (tsInput === undefined) {
+      resolvedTimestamp = new Date().toISOString();
+    } else if (typeof tsInput !== 'string' || tsInput.trim() === '') {
+      errors.push('ts must be an ISO-8601 string when provided');
+    } else {
+      const parsedTs = new Date(tsInput);
+      if (Number.isNaN(parsedTs.getTime())) {
+        errors.push('ts must be a valid ISO-8601 string when provided');
+      } else {
+        resolvedTimestamp = parsedTs.toISOString();
+      }
+    }
+
+    if (errors.length > 0) {
+      return res.status(400).json({
+        error: 'bad_request',
+        details: errors,
+      });
+    }
+
+    const eventPayload = {
+      tenantId: tenantId.trim(),
+      type: eventType.trim(),
+      refId: refId.trim(),
+      amount,
+      ts: resolvedTimestamp,
+      source: 'api',
+    };
+
+    try {
+      const docRef = await admin.firestore().collection('events').add(eventPayload);
+      return res.status(201).json({
+        ok: true,
+        id: docRef.id,
+      });
+    } catch (error) {
+      console.error('[AT-007] Failed to ingest event', error);
+      return res.status(500).json({
+        error: 'internal',
+      });
+    }
+  });
+
 exports.eventsList = functions
   .region('europe-west1')
   .https.onRequest(async (req, res) => {
