@@ -284,3 +284,76 @@ exports.shopifyAuthMock = functions
       return res.status(500).json({ error: 'internal' });
     }
   });
+
+exports.recoveryEmailMock = functions
+  .region('europe-west1')
+  .https.onRequest(async (req, res) => {
+    if (req.method !== 'POST') {
+      res.set('Allow', 'POST');
+      return res.status(405).json({ error: 'method_not_allowed' });
+    }
+
+    const body = req.body;
+    const errors = [];
+
+    if (body === null || typeof body !== 'object') {
+      errors.push('request body must be a JSON object');
+    }
+
+    const tenantId = typeof body?.tenantId === 'string' ? body.tenantId.trim() : body?.tenantId;
+    const to = typeof body?.to === 'string' ? body.to.trim() : body?.to;
+    const template =
+      typeof body?.template === 'string' ? body.template.trim() : body?.template;
+    const data = body?.data;
+
+    if (typeof tenantId !== 'string' || tenantId === '') {
+      errors.push('tenantId must be a non-empty string');
+    }
+
+    if (typeof to !== 'string' || to === '' || !to.includes('@')) {
+      errors.push('to must be a string containing "@"');
+    }
+
+    if (typeof template !== 'string' || template === '') {
+      errors.push('template must be a non-empty string');
+    }
+
+    if (data !== undefined) {
+      if (data === null || typeof data !== 'object' || Array.isArray(data)) {
+        errors.push('data must be an object when provided');
+      }
+    }
+
+    if (errors.length > 0) {
+      return res.status(400).json({
+        error: 'bad_request',
+        details: errors,
+      });
+    }
+
+    const queuedAt = new Date().toISOString();
+    const emailPayload = {
+      tenantId,
+      to,
+      template,
+      data: data ?? {},
+      status: 'queued',
+      queuedAt,
+    };
+
+    try {
+      await admin.firestore().collection('emails').add(emailPayload);
+
+      return res.status(202).json({
+        ok: true,
+        status: 'queued',
+        tenantId,
+        to,
+        template,
+        queuedAt,
+      });
+    } catch (error) {
+      console.error('[AT-010] Failed to queue recovery email mock', error);
+      return res.status(500).json({ error: 'internal' });
+    }
+  });
