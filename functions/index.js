@@ -66,6 +66,52 @@ exports.eventWriteMock = functions
     });
   });
 
+exports.lostRevenueSummary = functions
+  .region('europe-west1')
+  .https.onRequest(async (req, res) => {
+    const rawTenantId = req.query?.tenantId;
+    const tenantIdCandidate = Array.isArray(rawTenantId)
+      ? rawTenantId[0]
+      : rawTenantId;
+
+    if (typeof tenantIdCandidate !== 'string' || tenantIdCandidate.trim() === '') {
+      return res.status(400).json({ error: 'bad_request' });
+    }
+
+    const tenantId = tenantIdCandidate.trim();
+
+    try {
+      const snapshot = await admin
+        .firestore()
+        .collection('events')
+        .where('tenantId', '==', tenantId)
+        .where('type', '==', 'cart_abandon')
+        .get();
+
+      const totalLostRevenue = snapshot.docs.reduce((acc, doc) => {
+        const data = doc.data() ?? {};
+        const amount = data.amount;
+
+        if (typeof amount === 'number' && Number.isFinite(amount) && amount >= 0) {
+          return acc + amount;
+        }
+
+        return acc;
+      }, 0);
+
+      const roundedLostRevenue = Math.round(totalLostRevenue * 100) / 100;
+
+      return res.status(200).json({
+        tenantId,
+        lostRevenue: roundedLostRevenue,
+        ts: new Date().toISOString(),
+      });
+    } catch (error) {
+      console.error('[AT-008] Failed to calculate lost revenue summary', error);
+      return res.status(500).json({ error: 'internal' });
+    }
+  });
+
 exports.ingestEvent = functions
   .region('europe-west1')
   .https.onRequest(async (req, res) => {
