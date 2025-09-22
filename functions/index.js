@@ -36,8 +36,12 @@ exports.onboarding = functions
       return res.status(405).json({ error: 'method_not_allowed' });
     }
 
-    const p = (req.path || '').replace(/\/+$/, '');
-    if (p !== '/onboarding' && p !== '/onboarding/checklist') {
+    // Funktionsname ist bereits abgeschnitten:
+    // /onboarding            -> req.path === "/"
+    // /onboarding/           -> req.path === "/"
+    // /onboarding/checklist  -> req.path === "/checklist"
+    const p = (req.path || '/').replace(/\/+$/, '') || '/';
+    if (p !== '/' && p !== '/checklist') {
       return res.status(404).json({ error: 'not_found' });
     }
 
@@ -46,20 +50,12 @@ exports.onboarding = functions
       .status(200)
       .json({
         items: [
-          { id: 'connect-shop', title: 'Shop verbinden', done: false },
-          { id: 'set-branding', title: 'Branding konfigurieren', done: false },
-          {
-            id: 'import-data',
-            title: 'Beispieldaten laden (Demo Mode)',
-            done: false,
-          },
-          {
-            id: 'send-first-mail',
-            title: 'Erste Recovery-Mail aktivieren',
-            done: false,
-          },
-          { id: 'review-billing', title: 'Billing prüfen', done: false },
-        ],
+          { id: 'connect-shop',    title: 'Shop verbinden',                   done: false },
+          { id: 'set-branding',    title: 'Branding konfigurieren',           done: false },
+          { id: 'import-data',     title: 'Beispieldaten laden (Demo Mode)',  done: false },
+          { id: 'send-first-mail', title: 'Erste Recovery-Mail aktivieren',   done: false },
+          { id: 'review-billing',  title: 'Billing prüfen',                   done: false }
+        ]
       });
   });
 
