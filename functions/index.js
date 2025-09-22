@@ -36,91 +36,31 @@ exports.onboarding = functions
       return res.status(405).json({ error: 'method_not_allowed' });
     }
 
-    const collectCandidates = () => {
-      const values = [];
-
-      const push = (value) => {
-        if (typeof value === 'string' && value !== '') {
-          values.push(value);
-        }
-      };
-
-      push(req.path);
-      push(req.originalUrl);
-      push(req.url);
-
-      return values;
-    };
-
-    const normalizePath = (value) => {
-      if (typeof value !== 'string') {
-        return '';
-      }
-
-      const withoutQuery = value.split('?')[0] ?? '';
-      if (withoutQuery === '') {
-        return '/';
-      }
-
-      let withLeadingSlash = withoutQuery.startsWith('/')
-        ? withoutQuery
-        : `/${withoutQuery}`;
-
-      if (withLeadingSlash.length > 1 && withLeadingSlash.endsWith('/')) {
-        withLeadingSlash = withLeadingSlash.replace(/\/+$/, '');
-      }
-
-      return withLeadingSlash === '' ? '/' : withLeadingSlash;
-    };
-
-    const normalizedCandidates = Array.from(
-      new Set(
-        collectCandidates()
-          .map(normalizePath)
-          .filter((candidate) => candidate !== '')
-      )
-    );
-
-    const allowedEndpoints = ['/onboarding', '/onboarding/checklist'];
-
-    const matchesAllowed = normalizedCandidates.some((candidate) => {
-      if (candidate === '/') {
-        return true;
-      }
-
-      if (allowedEndpoints.includes(candidate)) {
-        return true;
-      }
-
-      return allowedEndpoints.some((endpoint) =>
-        candidate !== endpoint && candidate.endsWith(endpoint)
-      );
-    });
-
-    if (!matchesAllowed) {
+    const p = (req.path || '').replace(/\/+$/, '');
+    if (p !== '/onboarding' && p !== '/onboarding/checklist') {
       return res.status(404).json({ error: 'not_found' });
     }
 
-    const responseBody = {
-      items: [
-        { id: 'connect-shop', title: 'Shop verbinden', done: false },
-        { id: 'set-branding', title: 'Branding konfigurieren', done: false },
-        {
-          id: 'import-data',
-          title: 'Beispieldaten laden (Demo Mode)',
-          done: false,
-        },
-        {
-          id: 'send-first-mail',
-          title: 'Erste Recovery-Mail aktivieren',
-          done: false,
-        },
-        { id: 'review-billing', title: 'Billing prüfen', done: false },
-      ],
-    };
-
-    res.set('Content-Type', 'application/json');
-    return res.status(200).json(responseBody);
+    return res
+      .type('application/json')
+      .status(200)
+      .json({
+        items: [
+          { id: 'connect-shop', title: 'Shop verbinden', done: false },
+          { id: 'set-branding', title: 'Branding konfigurieren', done: false },
+          {
+            id: 'import-data',
+            title: 'Beispieldaten laden (Demo Mode)',
+            done: false,
+          },
+          {
+            id: 'send-first-mail',
+            title: 'Erste Recovery-Mail aktivieren',
+            done: false,
+          },
+          { id: 'review-billing', title: 'Billing prüfen', done: false },
+        ],
+      });
   });
 
 exports.helloWorld = functions.region('europe-west1').https.onRequest(async (req, res) => {
