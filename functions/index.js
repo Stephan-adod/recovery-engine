@@ -40,6 +40,7 @@ exports.onboarding = functions
     const normalizedPath = rawPath.replace(/\/+$/, '') || '/';
     const segments = normalizedPath.split('/').filter(Boolean);
     const isChecklistPath =
+      segments.length === 0 ||
       (segments.length === 1 && segments[0] === 'checklist') ||
       (segments.length === 2 && segments[0] === 'onboarding' && segments[1] === 'checklist');
 
