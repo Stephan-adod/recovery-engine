@@ -1,34 +1,48 @@
-﻿# Codex-First Workflow v1.0
+﻿# Codex-First Workflow v1.2
 
 ## Rollen
-- **ChatGPT (Coach):** erstellt Atomic Tickets, Prompts, Prozessdoku. Kein Code.
-- **Nutzer:** Ticket 1:1 an Codex geben, Output einspielen, Tests starten, PR/Merge.
-- **Codex:** liefert Code/Diffs strikt nach Ticket, inkl. Testanleitung.
-- **Testing (CI-first):** primär CI-Smoketests, Emulator nur ergänzend.
+- ChatGPT (Coach): Tickets, Prompts, Prozess. Kein Code.
+- Nutzer: Handover an Codex, Output übernehmen, Tests, PR/Merge.
+- Codex: Code strikt nach Ticket, inkl. Testanleitung.
+- CI: Smoke auf jedem PR.
 
-## Workflow-Schritte
-1) **Ticket-Erstellung** (	ickets/AT-xxx.md):
-   Ziel · Scope · Inputs · Output · Tests · DoD. Max 2h Codex-Aufwand.
-2) **Handover an Codex** (Template codex/prompts/atomic_ticket.txt):
-   Repo-Tree + Ticket + Constraints. Prompt 1:1 übergeben.
-3) **Codex-Output übernehmen:**
-   Dateien/Diffs ins Repo, Feature-Branch committen.
-4) **Testing:**
-   Tests exakt wie von Codex beschrieben. Bei Fehlern: Minimal-Fix-Prompt → Retest.
-5) **PR & Merge:**
-   Branch eature/AT-xxx-slug, PR, .gh/pr_checklist.md abhaken, CI grün → Merge.
+## Ablauf
+1) Ticket (`tickets/AT-xxx.md`) mit: Ziel · Scope · Inputs · Output · Tests · DoD · **Smoke-Curl**.
+2) Handover an Codex (Template), 1:1 ohne Änderungen.
+3) Output exakt übernehmen, Feature-Branch committen.
+4) **Tests lokal**: Emulator starten, Smoke-Curl aus Ticket, Ergebnis prüfen.
+5) PR → CI muss grün → `.gh/pr_checklist.md` abhaken → Merge.
+6) Nächstes Ticket.
 
-## Prinzipien (aus Codex Prinzipien v0.1)
-- Atomic Tickets, messbare Artefakte, enger Loop (Prompt→Code→Test→Commit).
-- Automation-by-Default (CI), Human-in-the-Loop für High-Risk.
-- Iteration: Define → Generate → Auto-Test → PR → Merge → Next.
+## Testing-Regeln
+- Emulator: `npm run emu --prefix functions`.
+- Windows-PowerShell: JSON korrekt escapen:
+  ```powershell
+  curl.exe -s -X POST URL `
+    -H "Content-Type: application/json" `
+    -d '{\"k\":\"v\"}'
+UI: http://127.0.0.1:4000 (Functions/Firestore) zur Sichtprüfung.
 
-## Runbook-Checks pro Ticket
-- [ ] Ticket im Repo (	ickets/AT-xxx.md)
-- [ ] Prompt an Codex übergeben
-- [ ] Output eingespielt
-- [ ] Tests bestanden (laut Codex)
-- [ ] PR erstellt, CI grün
-- [ ] Merge nach DoD
+CI: wartet auf Ports, ruft Smoke-Script, schlägt rot bei 4xx/5xx oder ungültigem JSON.
 
-**Version:** v1.0 · **Owner:** Stephan Gauglitz
+Ticket-Checkliste
+ Ticket im Repo, Smoke-Curl enthalten
+
+ Handover an Codex gesendet
+
+ Output übernommen, nur Scope-Dateien geändert
+
+ Lokal: Smoke grün
+
+ PR offen, CI grün
+
+ Merge nach DoD
+
+Branch/PR
+Branch: feature/AT-xxx-slug
+
+Rebase auf main vor PR
+
+Kein Direct-Push auf main
+
+Version: v1.2 · Status: Stabil · Owner: Stephan Gauglitz
