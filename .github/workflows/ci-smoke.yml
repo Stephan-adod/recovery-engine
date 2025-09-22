@@ -1,14 +1,19 @@
-git checkout codex/implement-healthcheck-endpoints-as-per-ticket
-ni .github/workflows -Force | Out-Null
-@'
 name: ci-smoke
-on: [pull_request]
+on:
+  pull_request:
+  workflow_dispatch:
+
 jobs:
   smoke:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - run: npm i -g firebase-tools
+      - name: install functions deps
+        run: |
+          if [ -f functions/package.json ]; then
+            npm ci --prefix functions
+          fi
       - name: start emulators
         run: firebase emulators:start --only functions,firestore --project demo & sleep 12
       - name: run smoke from ticket
@@ -17,23 +22,33 @@ jobs:
           $nr = $null
           $branch = "${{ github.head_ref }}"
           if ($branch -match 'AT-(\d{3})') { $nr = $Matches[1] }
+
           if (-not $nr) {
-            $changed = git diff --name-only origin/${{ github.base_ref }}... | Select-String 'tickets/AT-(\d{3})\.md' -AllMatches
-            if ($changed.Matches.Count -gt 0) { $nr = $changed.Matches[0].Groups[1].Value }
+            $changed = git diff --name-only origin/${{ github.base_ref }}... |
+              Select-String 'tickets/AT-(\d{3})\.md' -AllMatches |
+              ForEach-Object { $_.Matches } | Select-Object -First 1
+            if ($changed) { $nr = $changed.Groups[1].Value }
           }
-          if (-not $nr) { Write-Error "Keine Ticketnummer gefunden."; exit 1 }
+
+          if (-not $nr) {
+            $nr = (Get-ChildItem tickets -Filter 'AT-*.md' |
+              ForEach-Object { if($_.Name -match 'AT-(\d{3})\.md'){ [int]$Matches[1] } } |
+              Measure-Object -Maximum).Maximum
+          }
+
+          if (-not $nr) { Write-Error "Keine Ticketnummer ableitbar."; exit 1 }
+
           $ticket = "tickets/AT-$("{0:D3}" -f [int]$nr).md"
           if (-not (Test-Path $ticket)) { Write-Error "Ticket $ticket fehlt."; exit 1 }
+
           $content = Get-Content $ticket -Raw
           $smokeBlock = ($content -split '## Smoke')[1]
           if (-not $smokeBlock) { Write-Error "Kein '## Smoke' im Ticket."; exit 1 }
+
           $url = Select-String -InputObject $smokeBlock -Pattern 'http://127\.0\.0\.1:[0-9]+/[^\s`"]+' -AllMatches |
                  ForEach-Object { $_.Matches } | Select-Object -First 1 | ForEach-Object { $_.Value }
           if (-not $url) { Write-Error "Keine Smoke-URL gefunden."; exit 1 }
+
           $code = curl -s -o /dev/null -w "%{http_code}" $url
           if ([int]$code -ge 200 -and [int]$code -lt 300) { Write-Host "Smoke OK: $code $url" }
           else { Write-Error "Smoke FAIL: $code $url"; exit 1 }
-'@ | Set-Content .github/workflows/ci-smoke.yml -Encoding utf8
-git add .github/workflows/ci-smoke.yml
-git commit -m "ci: smoke aus Ticket (v0.2)"
-git push
