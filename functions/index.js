@@ -411,3 +411,5 @@ exports.recoveryEmailMock = functions
       return res.status(500).json({ error: 'internal' });
     }
   });
+
+exports.health = require('./health');
