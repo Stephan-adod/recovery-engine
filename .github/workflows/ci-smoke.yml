@@ -1,19 +1,42 @@
 name: ci-smoke
 on: [pull_request]
+
 jobs:
   smoke:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - run: npm i -g firebase-tools
-      - run: firebase emulators:start --only functions,firestore --project demo & sleep 12
-      - name: run smoke
+
+      # Projektabhängigkeiten für Functions installieren
+      - name: install functions deps
+        run: |
+          if [ -f functions/package.json ]; then
+            npm ci --prefix functions
+          fi
+
+      - name: start emulators
+        run: firebase emulators:start --only functions,firestore --project demo & sleep 12
+
+      - name: run smoke from ticket
         shell: pwsh
         run: |
-          Get-ChildItem smoke -Filter 'AT-*.http' | ForEach-Object {
-            $req = Get-Content $_.FullName -Raw
-            $lines = $req -split "`n"
-            $method,$url = $lines[0].Split(' ')[0,1]
-            $code = (curl -s -o /dev/null -w "%%{http_code}" -X $method $url)
-            if ($code -lt 200 -or $code -ge 300) { Write-Error "Smoke failed: $($_.Name) -> $code"; exit 1 }
+          $nr = $null
+          $branch = "${{ github.head_ref }}"
+          if ($branch -match 'AT-(\d{3})') { $nr = $Matches[1] }
+          if (-not $nr) {
+            $changed = git diff --name-only origin/${{ github.base_ref }}... | Select-String 'tickets/AT-(\d{3})\.md' -AllMatches
+            if ($changed.Matches.Count -gt 0) { $nr = $changed.Matches[0].Groups[1].Value }
           }
+          if (-not $nr) { Write-Error "Keine Ticketnummer gefunden."; exit 1 }
+          $ticket = "tickets/AT-$("{0:D3}" -f [int]$nr).md"
+          if (-not (Test-Path $ticket)) { Write-Error "Ticket $ticket fehlt."; exit 1 }
+          $content = Get-Content $ticket -Raw
+          $smokeBlock = ($content -split '## Smoke')[1]
+          if (-not $smokeBlock) { Write-Error "Kein '## Smoke' im Ticket."; exit 1 }
+          $url = Select-String -InputObject $smokeBlock -Pattern 'http://127\.0\.0\.1:[0-9]+/[^\s`"]+' -AllMatches |
+                 ForEach-Object { $_.Matches } | Select-Object -First 1 | ForEach-Object { $_.Value }
+          if (-not $url) { Write-Error "Keine Smoke-URL gefunden."; exit 1 }
+          $code = curl -s -o /dev/null -w "%{http_code}" $url
+          if ([int]$code -ge 200 -and [int]$code -lt 300) { Write-Host "Smoke OK: $code $url" }
+          else { Write-Error "Smoke FAIL: $code $url"; exit 1 }
