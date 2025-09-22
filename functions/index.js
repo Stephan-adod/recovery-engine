@@ -36,12 +36,43 @@ exports.onboarding = functions
       return res.status(405).json({ error: 'method_not_allowed' });
     }
 
-    const rawPath = typeof req.path === 'string' ? req.path : '/';
-    const normalizedPath = rawPath.endsWith('/') && rawPath !== '/'
-      ? rawPath.slice(0, -1)
-      : rawPath;
+    const rawPaths = [];
 
-    if (normalizedPath !== '/checklist') {
+    if (typeof req.path === 'string' && req.path !== '') {
+      rawPaths.push(req.path);
+    }
+
+    if (typeof req.originalUrl === 'string' && req.originalUrl !== '') {
+      const withoutQuery = req.originalUrl.split('?')[0] ?? '';
+      if (withoutQuery !== '') {
+        rawPaths.push(withoutQuery);
+      }
+    }
+
+    if (rawPaths.length === 0 && typeof req.url === 'string' && req.url !== '') {
+      rawPaths.push(req.url.split('?')[0] ?? '');
+    }
+
+    const normalizedPaths = rawPaths
+      .map((candidate) => {
+        if (candidate === '') {
+          return '/';
+        }
+
+        const prefixed = candidate.startsWith('/') ? candidate : `/${candidate}`;
+        if (prefixed.length > 1 && prefixed.endsWith('/')) {
+          return prefixed.replace(/\/+$/, '');
+        }
+
+        return prefixed;
+      })
+      .filter((candidate) => candidate !== '');
+
+    const matchesChecklist = normalizedPaths.some((candidate) =>
+      candidate === '/checklist' || candidate === '/onboarding/checklist'
+    );
+
+    if (!matchesChecklist) {
       return res.status(404).json({ error: 'not_found' });
     }
 
