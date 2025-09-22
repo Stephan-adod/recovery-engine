@@ -3,6 +3,7 @@ const admin = require('firebase-admin');
 admin.apps.length ? admin.app() : admin.initializeApp();
 
 exports.health = require('./health');
+exports.guidance = require('./guidance');
 
 exports.helloWorld = functions.region('europe-west1').https.onRequest(async (req, res) => {
   const timestamp = new Date().toISOString();
