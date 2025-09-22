@@ -1,3 +1,6 @@
+git checkout codex/implement-healthcheck-endpoints-as-per-ticket
+ni .github/workflows -Force | Out-Null
+@'
 name: ci-smoke
 on: [pull_request]
 
@@ -40,3 +43,4 @@ jobs:
           $code = curl -s -o /dev/null -w "%{http_code}" $url
           if ([int]$code -ge 200 -and [int]$code -lt 300) { Write-Host "Smoke OK: $code $url" }
           else { Write-Error "Smoke FAIL: $code $url"; exit 1 }
+
