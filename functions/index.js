@@ -3,7 +3,30 @@ const admin = require('firebase-admin');
 admin.apps.length ? admin.app() : admin.initializeApp();
 
 exports.health = require('./health');
-exports.guidance = require('./guidance');
+exports.guidance = functions
+  .region('europe-west1')
+  .https.onRequest((req, res) => {
+    if (req.method !== 'GET') {
+      return res.status(405).json({ error: 'method_not_allowed' });
+    }
+
+    const segments = (req.path || '').split('/').filter(Boolean);
+    const tenantId = segments[segments.length - 1];
+    const isDemoTenant = tenantId === 'demo';
+
+    const body = isDemoTenant
+      ? {
+          advice: 'Reduziere Reibung im Checkout und aktiviere Reminder-Mails.',
+          confidence: 0.7,
+        }
+      : {
+          advice: 'Verbessere Checkout-Klarheit und Versandinfos.',
+          confidence: 0.5,
+        };
+
+    res.set('Content-Type', 'application/json');
+    return res.status(200).json(body);
+  });
 
 exports.helloWorld = functions.region('europe-west1').https.onRequest(async (req, res) => {
   const timestamp = new Date().toISOString();
