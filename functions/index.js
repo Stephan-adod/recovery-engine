@@ -2,6 +2,8 @@ const functions = require('firebase-functions');
 const admin = require('firebase-admin');
 admin.apps.length ? admin.app() : admin.initializeApp();
 
+exports.health = require('./health');
+
 exports.helloWorld = functions.region('europe-west1').https.onRequest(async (req, res) => {
   const timestamp = new Date().toISOString();
   let serializedPayload;
