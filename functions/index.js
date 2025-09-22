@@ -48,3 +48,20 @@ exports.lostRevenueMock = functions
       ts: new Date().toISOString(),
     });
   });
+
+exports.eventWriteMock = functions
+  .region('europe-west1')
+  .https.onRequest(async (_req, res) => {
+    const db = admin.firestore();
+    const payload = {
+      type: 'test',
+      ts: new Date().toISOString(),
+    };
+
+    const docRef = await db.collection('events').add(payload);
+
+    res.status(200).json({
+      id: docRef.id,
+      ...payload,
+    });
+  });
