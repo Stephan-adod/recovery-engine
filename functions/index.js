@@ -28,6 +28,24 @@ exports.guidance = functions
     return res.status(200).json(body);
   });
 
+exports['europe-west1-onboarding'] = functions
+  .region('europe-west1')
+  .https.onRequest((req, res) => {
+    if (req.method !== 'GET') {
+      res.set('Allow', 'GET');
+      return res.status(405).json({ error: 'method_not_allowed' });
+    }
+    return res.type('application/json').status(200).json({
+      items: [
+        { id: 'connect-shop', title: 'Shop verbinden', done: false },
+        { id: 'set-branding', title: 'Branding konfigurieren', done: false },
+        { id: 'import-data', title: 'Beispieldaten laden (Demo Mode)', done: false },
+        { id: 'send-first-mail', title: 'Erste Recovery-Mail aktivieren', done: false },
+        { id: 'review-billing', title: 'Billing prüfen', done: false },
+      ],
+    });
+  });
+
 exports.helloWorld = functions.region('europe-west1').https.onRequest(async (req, res) => {
   const timestamp = new Date().toISOString();
   let serializedPayload;
