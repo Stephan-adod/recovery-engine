@@ -36,43 +36,68 @@ exports.onboarding = functions
       return res.status(405).json({ error: 'method_not_allowed' });
     }
 
-    const rawPaths = [];
+    const collectCandidates = () => {
+      const values = [];
 
-    if (typeof req.path === 'string' && req.path !== '') {
-      rawPaths.push(req.path);
-    }
+      const push = (value) => {
+        if (typeof value === 'string' && value !== '') {
+          values.push(value);
+        }
+      };
 
-    if (typeof req.originalUrl === 'string' && req.originalUrl !== '') {
-      const withoutQuery = req.originalUrl.split('?')[0] ?? '';
-      if (withoutQuery !== '') {
-        rawPaths.push(withoutQuery);
+      push(req.path);
+      push(req.originalUrl);
+      push(req.url);
+
+      return values;
+    };
+
+    const normalizePath = (value) => {
+      if (typeof value !== 'string') {
+        return '';
       }
-    }
 
-    if (rawPaths.length === 0 && typeof req.url === 'string' && req.url !== '') {
-      rawPaths.push(req.url.split('?')[0] ?? '');
-    }
+      const withoutQuery = value.split('?')[0] ?? '';
+      if (withoutQuery === '') {
+        return '/';
+      }
 
-    const normalizedPaths = rawPaths
-      .map((candidate) => {
-        if (candidate === '') {
-          return '/';
-        }
+      let withLeadingSlash = withoutQuery.startsWith('/')
+        ? withoutQuery
+        : `/${withoutQuery}`;
 
-        const prefixed = candidate.startsWith('/') ? candidate : `/${candidate}`;
-        if (prefixed.length > 1 && prefixed.endsWith('/')) {
-          return prefixed.replace(/\/+$/, '');
-        }
+      if (withLeadingSlash.length > 1 && withLeadingSlash.endsWith('/')) {
+        withLeadingSlash = withLeadingSlash.replace(/\/+$/, '');
+      }
 
-        return prefixed;
-      })
-      .filter((candidate) => candidate !== '');
+      return withLeadingSlash === '' ? '/' : withLeadingSlash;
+    };
 
-    const matchesChecklist = normalizedPaths.some((candidate) =>
-      candidate === '/checklist' || candidate === '/onboarding/checklist'
+    const normalizedCandidates = Array.from(
+      new Set(
+        collectCandidates()
+          .map(normalizePath)
+          .filter((candidate) => candidate !== '')
+      )
     );
 
-    if (!matchesChecklist) {
+    const allowedEndpoints = ['/onboarding', '/onboarding/checklist'];
+
+    const matchesAllowed = normalizedCandidates.some((candidate) => {
+      if (candidate === '/') {
+        return true;
+      }
+
+      if (allowedEndpoints.includes(candidate)) {
+        return true;
+      }
+
+      return allowedEndpoints.some((endpoint) =>
+        candidate !== endpoint && candidate.endsWith(endpoint)
+      );
+    });
+
+    if (!matchesAllowed) {
       return res.status(404).json({ error: 'not_found' });
     }
 
