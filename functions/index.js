@@ -112,6 +112,60 @@ exports.lostRevenueSummary = functions
     }
   });
 
+exports.recoveryStatus = functions
+  .region('europe-west1')
+  .https.onRequest(async (req, res) => {
+    const rawTenantId = req.query?.tenantId;
+    const tenantIdCandidate = Array.isArray(rawTenantId)
+      ? rawTenantId[0]
+      : rawTenantId;
+
+    if (typeof tenantIdCandidate !== 'string' || tenantIdCandidate.trim() === '') {
+      return res.status(400).json({ error: 'bad_request' });
+    }
+
+    const tenantId = tenantIdCandidate.trim();
+
+    try {
+      const db = admin.firestore();
+      const [eventsSnapshot, emailsSnapshot] = await Promise.all([
+        db
+          .collection('events')
+          .where('tenantId', '==', tenantId)
+          .where('type', '==', 'cart_abandon')
+          .get(),
+        db
+          .collection('emails')
+          .where('tenantId', '==', tenantId)
+          .where('status', '==', 'queued')
+          .get(),
+      ]);
+
+      const totalLostRevenue = eventsSnapshot.docs.reduce((acc, doc) => {
+        const data = doc.data() ?? {};
+        const amount = data.amount;
+
+        if (typeof amount === 'number' && Number.isFinite(amount) && amount >= 0) {
+          return acc + amount;
+        }
+
+        return acc;
+      }, 0);
+
+      const lostRevenue = Number.parseFloat(totalLostRevenue.toFixed(2));
+
+      return res.status(200).json({
+        tenantId,
+        lostRevenue,
+        emailsQueued: emailsSnapshot.size,
+        ts: new Date().toISOString(),
+      });
+    } catch (error) {
+      console.error('[AT-011] Failed to build recovery status', error);
+      return res.status(500).json({ error: 'internal' });
+    }
+  });
+
 exports.ingestEvent = functions
   .region('europe-west1')
   .https.onRequest(async (req, res) => {
