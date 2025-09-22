@@ -6,55 +6,36 @@ const DEMO_RESPONSE = {
   advice: 'Reduziere Reibung im Checkout und aktiviere Reminder-Mails.',
   confidence: 0.7,
 };
-
 const DEFAULT_RESPONSE = {
-  advice: 'Optimiere den Checkout-Prozess und aktiviere Erinnerungs-Mails.',
+  advice: 'Verbessere Checkout-Klarheit und Versandinfos.',
   confidence: 0.5,
 };
 
-const extractTenantId = (req) => {
-  const originalUrl = typeof req.originalUrl === 'string' ? req.originalUrl : '';
-  const originalMatch = originalUrl.match(/\/guidance\/([^/?#]+)(?:[/?]|$)/);
-
-  if (originalMatch && originalMatch[1]) {
-    try {
-      return decodeURIComponent(originalMatch[1]);
-    } catch (_error) {
-      return originalMatch[1];
-    }
+function extractTenantId(req) {
+  // 1) /guidance/:id in originalUrl
+  const original = typeof req.originalUrl === 'string' ? req.originalUrl : '';
+  const m1 = original.match(/\/guidance\/([^/?#]+)(?:[/?]|$)/);
+  if (m1 && m1[1]) {
+    try { return decodeURIComponent(m1[1]); } catch { return m1[1]; }
   }
-
+  // 2) req.path -> /guidance/:id
   const path = typeof req.path === 'string' ? req.path : '';
-  const pathSegments = path.split('/').filter(Boolean);
-
-  if (pathSegments.length > 0) {
-    if (pathSegments[0] === 'guidance' && pathSegments[1]) {
-      return pathSegments[1];
-    }
-
-    if (pathSegments[0] !== 'guidance') {
-      return pathSegments[0];
-    }
-  }
-
-  const url = typeof req.url === 'string' ? req.url : '';
-  const urlSegments = url.split('?')[0].split('/').filter(Boolean);
-  if (urlSegments[0] === 'guidance' && urlSegments[1]) {
-    return urlSegments[1];
-  }
-  if (urlSegments.length > 0) {
-    return urlSegments[0];
-  }
-
+  const segs = path.split('/').filter(Boolean);
+  if (segs[0] === 'guidance' && segs[1]) return segs[1];
+  // 3) req.url Fallback
+  const url = typeof req.url === 'string' ? req.url.split('?')[0] : '';
+  const m3 = url.match(/\/guidance\/([^/?#]+)(?:[/?]|$)/);
+  if (m3 && m3[1]) return m3[1];
   return undefined;
-};
+}
 
 module.exports = functions.region(REGION).https.onRequest((req, res) => {
-  const tenantId = extractTenantId(req);
-
-  if (tenantId === DEMO_TENANT_ID) {
-    return res.status(200).json(DEMO_RESPONSE);
+  if (req.method !== 'GET') {
+    res.set('Allow', 'GET');
+    return res.status(405).json({ error: 'method_not_allowed' });
   }
 
-  return res.status(200).json(DEFAULT_RESPONSE);
+  const tenantId = extractTenantId(req);
+  const body = tenantId === DEMO_TENANT_ID ? DEMO_RESPONSE : DEFAULT_RESPONSE;
+  return res.status(200).json(body);
 });
