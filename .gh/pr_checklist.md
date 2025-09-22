@@ -1,4 +1,6 @@
-﻿- [ ] Ticket verlinkt (AT-xxx)
-- [ ] Scope eingehalten
-- [ ] Tests grün (lokal/CI)
-- [ ] CI grün im PR
+- [ ] Ticket verlinkt (tickets/AT-xxx.md)
+- [ ] Handover vorhanden (handover/AT-xxx.md)
+- [ ] Nur Scope-Dateien geändert
+- [ ] Smoke-Datei vorhanden (smoke/AT-xxx.http)
+- [ ] CI grün
+
