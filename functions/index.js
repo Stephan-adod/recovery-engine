@@ -28,12 +28,21 @@ exports.guidance = functions
     return res.status(200).json(body);
   });
 
-exports.onboardingChecklist = functions
+exports.onboarding = functions
   .region('europe-west1')
   .https.onRequest((req, res) => {
     if (req.method !== 'GET') {
       res.set('Allow', 'GET');
       return res.status(405).json({ error: 'method_not_allowed' });
+    }
+
+    const rawPath = typeof req.path === 'string' ? req.path : '/';
+    const normalizedPath = rawPath.endsWith('/') && rawPath !== '/'
+      ? rawPath.slice(0, -1)
+      : rawPath;
+
+    if (normalizedPath !== '/checklist') {
+      return res.status(404).json({ error: 'not_found' });
     }
 
     const responseBody = {
