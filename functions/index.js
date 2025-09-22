@@ -3,29 +3,32 @@ const admin = require('firebase-admin');
 admin.apps.length ? admin.app() : admin.initializeApp();
 
 exports.health = require('./health');
-exports.guidance = functions
+exports.onboarding = functions
   .region('europe-west1')
   .https.onRequest((req, res) => {
+    res.set('Allow', 'GET');
+    res.set('Content-Type', 'application/json');
+
     if (req.method !== 'GET') {
       return res.status(405).json({ error: 'method_not_allowed' });
     }
 
-    const segments = (req.path || '').split('/').filter(Boolean);
-    const tenantId = segments[segments.length - 1];
-    const isDemoTenant = tenantId === 'demo';
+    const rawPath = typeof req.path === 'string' ? req.path : '';
+    const normalizedPath = rawPath.replace(/\/+$/, '') || '/';
 
-    const body = isDemoTenant
-      ? {
-          advice: 'Reduziere Reibung im Checkout und aktiviere Reminder-Mails.',
-          confidence: 0.7,
-        }
-      : {
-          advice: 'Verbessere Checkout-Klarheit und Versandinfos.',
-          confidence: 0.5,
-        };
+    if (normalizedPath === '/checklist') {
+      return res.status(200).json({
+        items: [
+          { id: 'connect-shop', title: 'Shop verbinden', done: false },
+          { id: 'set-branding', title: 'Branding konfigurieren', done: false },
+          { id: 'import-data', title: 'Beispieldaten laden (Demo Mode)', done: false },
+          { id: 'send-first-mail', title: 'Erste Recovery-Mail aktivieren', done: false },
+          { id: 'review-billing', title: 'Billing prüfen', done: false },
+        ],
+      });
+    }
 
-    res.set('Content-Type', 'application/json');
-    return res.status(200).json(body);
+    return res.status(404).json({ error: 'not_found' });
   });
 
 exports.helloWorld = functions.region('europe-west1').https.onRequest(async (req, res) => {
