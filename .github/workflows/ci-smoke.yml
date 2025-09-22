@@ -29,7 +29,10 @@ jobs:
           done
           echo "---- EMULATOR LOG (tail) ----"
           tail -n 200 /tmp/emulators.log || true
-
+          
+      - name: list emulated functions
+        run: curl -s http://127.0.0.1:5001/recovery-engine/europe-west1/__/functions.json && echo
+        
       - name: Run smoke from ticket
         shell: pwsh
         run: |
