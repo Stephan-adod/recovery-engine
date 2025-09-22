@@ -65,3 +65,50 @@ exports.eventWriteMock = functions
       ...payload,
     });
   });
+
+exports.eventsList = functions
+  .region('europe-west1')
+  .https.onRequest(async (req, res) => {
+    const DEFAULT_LIMIT = 10;
+    const MIN_LIMIT = 1;
+    const MAX_LIMIT = 50;
+
+    const rawLimit = req.query?.limit;
+    const limitCandidate = Array.isArray(rawLimit) ? rawLimit[0] : rawLimit;
+    const parsedLimit = Number(limitCandidate);
+    const limit =
+      Number.isInteger(parsedLimit) &&
+      parsedLimit >= MIN_LIMIT &&
+      parsedLimit <= MAX_LIMIT
+        ? parsedLimit
+        : DEFAULT_LIMIT;
+
+    try {
+      const snapshot = await admin
+        .firestore()
+        .collection('events')
+        .orderBy('ts', 'desc')
+        .limit(limit)
+        .get();
+
+      const items = snapshot.docs.map((doc) => {
+        const data = doc.data() ?? {};
+
+        return {
+          id: doc.id,
+          type: data.type,
+          ts: data.ts,
+        };
+      });
+
+      res.status(200).json({
+        items,
+        count: items.length,
+      });
+    } catch (error) {
+      console.error('[AT-006] Failed to list events', error);
+      res.status(500).json({
+        error: 'internal',
+      });
+    }
+  });
