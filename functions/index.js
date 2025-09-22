@@ -36,8 +36,14 @@ exports.onboarding = functions
       return res.status(405).json({ error: 'method_not_allowed' });
     }
 
-    const normalizedPath = typeof req.path === 'string' && req.path.length > 0 ? req.path : '/';
-    if (normalizedPath !== '/checklist') {
+    const rawPath = typeof req.path === 'string' ? req.path : '';
+    const normalizedPath = rawPath.replace(/\/+$/, '') || '/';
+    const segments = normalizedPath.split('/').filter(Boolean);
+    const isChecklistPath =
+      (segments.length === 1 && segments[0] === 'checklist') ||
+      (segments.length === 2 && segments[0] === 'onboarding' && segments[1] === 'checklist');
+
+    if (!isChecklistPath) {
       return res.status(404).json({ error: 'not_found' });
     }
 
