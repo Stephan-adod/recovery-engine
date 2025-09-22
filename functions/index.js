@@ -13,10 +13,17 @@ exports.onboarding = functions
       return res.status(405).json({ error: 'method_not_allowed' });
     }
 
-    const rawPath = typeof req.path === 'string' ? req.path : '';
-    const normalizedPath = rawPath.replace(/\/+$/, '') || '/';
+    const url = new URL(req.url ?? '/', 'http://localhost');
+    const normalizedPath = url.pathname.replace(/\/+$/, '') || '/';
+    let effectivePath = normalizedPath;
 
-    if (normalizedPath === '/checklist') {
+    if (effectivePath === '/onboarding') {
+      effectivePath = '/';
+    } else if (effectivePath.startsWith('/onboarding/')) {
+      effectivePath = effectivePath.slice('/onboarding'.length);
+    }
+
+    if (effectivePath === '/checklist') {
       return res.status(200).json({
         items: [
           { id: 'connect-shop', title: 'Shop verbinden', done: false },
