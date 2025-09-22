@@ -32,6 +32,17 @@ jobs:
           
       - name: list emulated functions
         run: curl -s http://127.0.0.1:5001/recovery-engine/europe-west1/__/functions.json && echo
+
+      - name: wait for onboarding export
+        shell: bash
+        run: |
+          for i in {1..60}; do
+            out=$(curl -sf http://127.0.0.1:5001/recovery-engine/europe-west1/__/functions.json || true)
+            echo "$out" | grep -q 'europe-west1-onboarding' && exit 0
+            sleep 1
+          done
+          echo "onboarding not registered"; exit 1
+
         
       - name: Run smoke from ticket
         shell: pwsh
