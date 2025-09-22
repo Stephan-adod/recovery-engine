@@ -17,7 +17,7 @@ New-Item -ItemType Directory -Force $SmokeDir | Out-Null
 
 # Ticket
 $ticketPath = Join-Path $TicketDir "$id.md"
-Set-Content $ticketPath @"
+Set-Content $ticketPath @'
 # $id: $Title
 
 ## Ziel
@@ -45,11 +45,11 @@ Set-Content $ticketPath @"
 - [ ] Feature ok
 - [ ] Smoke grün
 - [ ] CI grün
-"@
+'@
 
 # Handover
 $handoverPath = Join-Path $HandoverDir "$id.md"
-Set-Content $handoverPath @"
+Set-Content $handoverPath @'
 # Handover: $id $Title
 
 ## Ticket
@@ -85,14 +85,14 @@ Content-Type: application/json
 - [ ] Nur Scope geändert
 - [ ] Smoke lokal grün
 - [ ] CI grün
-"@
+'@
 
 # Smoke
 $smokePath = Join-Path $SmokeDir "$id.http"
-Set-Content $smokePath @"
+Set-Content $smokePath @'
 GET http://127.0.0.1:5001/recovery-engine/europe-west1/<endpoint>
 Content-Type: application/json
-"@
+'@
 
 git checkout -b "feature/$id-$slug"
 git add $ticketPath $handoverPath $smokePath
