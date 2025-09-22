@@ -35,6 +35,12 @@ exports.onboarding = functions
       res.set('Allow', 'GET');
       return res.status(405).json({ error: 'method_not_allowed' });
     }
+
+    const normalizedPath = typeof req.path === 'string' && req.path.length > 0 ? req.path : '/';
+    if (normalizedPath !== '/checklist') {
+      return res.status(404).json({ error: 'not_found' });
+    }
+
     return res.type('application/json').status(200).json({
       items: [
         { id:'connect-shop',    title:'Shop verbinden',                   done:false },
