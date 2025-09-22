@@ -236,3 +236,51 @@ exports.eventsList = functions
       });
     }
   });
+
+exports.shopifyAuthMock = functions
+  .region('europe-west1')
+  .https.onRequest(async (req, res) => {
+    if (req.method !== 'GET') {
+      res.set('Allow', 'GET');
+      return res.status(405).json({ error: 'method_not_allowed' });
+    }
+
+    const rawShop = req.query?.shop;
+    const rawTenantId = req.query?.tenantId;
+
+    const shopCandidate = Array.isArray(rawShop) ? rawShop[0] : rawShop;
+    const tenantIdCandidate = Array.isArray(rawTenantId)
+      ? rawTenantId[0]
+      : rawTenantId;
+
+    if (
+      typeof shopCandidate !== 'string' ||
+      shopCandidate.trim() === '' ||
+      typeof tenantIdCandidate !== 'string' ||
+      tenantIdCandidate.trim() === ''
+    ) {
+      return res.status(400).json({ error: 'bad_request' });
+    }
+
+    const shopDomain = shopCandidate.trim();
+    const tenantId = tenantIdCandidate.trim();
+    const createdAt = new Date().toISOString();
+    const docPayload = {
+      shopDomain,
+      tenantId,
+      createdAt,
+    };
+
+    try {
+      await admin.firestore().collection('shops').add(docPayload);
+      return res.status(200).json({
+        ok: true,
+        shopDomain,
+        tenantId,
+        createdAt,
+      });
+    } catch (error) {
+      console.error('[AT-009] Failed to store Shopify auth mock payload', error);
+      return res.status(500).json({ error: 'internal' });
+    }
+  });
