@@ -1,0 +1,19 @@
+name: ci-smoke
+on: [pull_request]
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: npm i -g firebase-tools
+      - run: firebase emulators:start --only functions,firestore --project demo & sleep 12
+      - name: run smoke
+        shell: pwsh
+        run: |
+          Get-ChildItem smoke -Filter 'AT-*.http' | ForEach-Object {
+            $req = Get-Content $_.FullName -Raw
+            $lines = $req -split "`n"
+            $method,$url = $lines[0].Split(' ')[0,1]
+            $code = (curl -s -o /dev/null -w "%%{http_code}" -X $method $url)
+            if ($code -lt 200 -or $code -ge 300) { Write-Error "Smoke failed: $($_.Name) -> $code"; exit 1 }
+          }
