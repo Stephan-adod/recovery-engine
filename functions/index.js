@@ -35,16 +35,6 @@ exports.onboarding = functions
       res.set('Allow', 'GET');
       return res.status(405).json({ error: 'method_not_allowed' });
     }
-
-    // Funktionsname ist bereits abgeschnitten:
-    // /onboarding            -> req.path === "/"
-    // /onboarding/           -> req.path === "/"
-    // /onboarding/checklist  -> req.path === "/checklist"
-    const p = (req.path || '/').replace(/\/+$/, '') || '/';
-    if (p !== '/' && p !== '/checklist') {
-      return res.status(404).json({ error: 'not_found' });
-    }
-
     return res
       .type('application/json')
       .status(200)
